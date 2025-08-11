@@ -10,6 +10,8 @@
 
 Find your perfect pet companion with Pet Adoption Matching Agent! This Streamlit app uses the Gemini API to provide pet consultancy and adoption matching services. Whether you're looking for advice on pet care and budget, or trying to find a new furry friend, this app has you covered.
 
+![Agent Workflow](https://github.com/iwtba4188/Pet-Adoption-Matching-Agent/blob/main/example/Agent_Workflow.png)
+
 ## Features
 
 - **Pet Consultancy**: Ask questions about pet care, behavior, and budgeting.
