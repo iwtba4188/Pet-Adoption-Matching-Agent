@@ -32,6 +32,10 @@ Find your perfect pet companion with Pet Adoption Matching Agent! This Streamlit
   - "Can you suggest a pet that fits my lifestyle as a busy professional?"
 - Prompt examples for word cloud:
   - "What are the most common words in pet adoption articles?"
+- Real Example:
+  - ![Example1](https://github.com/iwtba4188/Pet-Adoption-Matching-Agent/blob/main/example/pet-func_call-with_dcard_crawler.pdf)
+  - ![Example2](https://github.com/iwtba4188/Pet-Adoption-Matching-Agent/blob/main/example/pet-func_call-with_vector_search.pdf)
+  - ![Example3](https://github.com/iwtba4188/Pet-Adoption-Matching-Agent/blob/main/example/pet-func_call-with_vector_search-2.pdf)
 
 ## How to Run It on Your Own Machine
 
