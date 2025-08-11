@@ -1,0 +1,41 @@
+# test workflow from https://github.com/tiangolo/fastapi/blob/master/.github/workflows/test.yml
+name: Test
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+      - name: Test
+        run: uv run pytest -n 1 tests -W ignore::DeprecationWarning --cov=src --cov=tests --cov-report=xml --cov-report=html:coverage --cov-fail-under=85
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Store coverage files
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            coverage
+            coverage.xml

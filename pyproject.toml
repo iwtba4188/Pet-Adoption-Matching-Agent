@@ -1,0 +1,75 @@
+[project]
+name = "11320iss507300-assistant"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "~=3.12"
+dependencies = [
+    "autogen-agentchat>=0.5.7",
+    "autogen-ext[openai]>=0.5.7",
+    "ckip-transformers>=0.3.4",
+    "gensim>=4.3.3",
+    "google-genai>=1.11.0",
+    "numpy==1.26.4",
+    "plotly>=6.0.1",
+    "scikit-learn>=1.6.1",
+    "selenium>=4.31.0",
+    "seleniumbase>=4.37.2",
+    "setuptools>=80.3.1",
+    "streamlit>=1.44.1",
+    "wordcloud>=1.9.4",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+    "ruff>=0.11.7",
+]
+test = [
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "pytest-mock>=3.14.0",
+    "pytest-timeout>=2.4.0",
+    "pytest-xdist>=3.6.1",
+]
+
+[tool.uv]
+default-groups = ["dev", "test"]
+
+# Settings from FastAPI
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "W191",  # indentation contains tabs
+]
+
+# Track: https://github.com/astral-sh/ruff/issues/15858
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "src",
+]
+markers = [
+    "early",
+    "performance",
+    "query_param",
+]

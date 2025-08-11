@@ -1,0 +1,158 @@
+{
+    "menu_items.about": {
+        "message": "This is a demo of a pet information chatbot. You can ask it about pet-related information or use the pet adoption matching service.",
+        "description": "About message of the page."
+    },
+    "spinner.loading": {
+        "message": "Loading...",
+        "description": "Loading message of the page."
+    },
+    "sidebar.section_label.pet": {
+        "message": "Pet Consultant",
+        "description": "Label of the pet consultant section"
+    },
+    "sidebar.page_label.pets.chat": {
+        "message": "Start chatting",
+        "description": "Label of the pet consultant page"
+    },
+    "sidebar.section_label.week10": {
+        "message": "Week 10: Word2Vec Visualization",
+        "description": "Label of the week 10 section"
+    },
+    "sidebar.page_label.week10.2d": {
+        "message": "2D Visualization",
+        "description": "Label of the week 10 Q1-1 2D"
+    },
+    "sidebar.page_label.week10.3d": {
+        "message": "3D Visualization",
+        "description": "Label of the week 10 Q1-1 3D"
+    },
+    "sidebar.page_label.week10.skip_gram": {
+        "message": "SKIP-GRAM Training",
+        "description": "Label of the week 10 Q2 SKIP-GRAM"
+    },
+    "sidebar.page_label.week10.cbow": {
+        "message": "CBOW Training",
+        "description": "Label of the week 10 Q3 CBOW"
+    },
+    "df_input.col_name.selected": {
+        "message": "Select to Train",
+        "description": "Column name for the data frame"
+    },
+    "df_input.col_name.sentence": {
+        "message": "Sentence",
+        "description": "Column name for the data frame"
+    },
+    "pets.chat.input_placeholder": {
+        "message": "Please enter the question you want to ask~",
+        "description": "The placeholder of user input field in pet consultant page"
+    },
+    "pets.chat.page_title": {
+        "message": "Pet Consultant - Your Best Pet Assistant",
+        "description": "The page title in the title bar of pet consultant page"
+    },
+    "pets.chat.doc_title": {
+        "message": "💬 Pet Adoption Matching Agent",
+        "description": "The page title in pet consultant page"
+    },
+    "pets.chat.spinner.func_call_text": {
+        "message": "Calling `{func_call_name}`...",
+        "description": "The loading text in pet consultant page"
+    },
+    "pets.chat.spinner.gemini_response": {
+        "message": "Waiting for Gemini response...",
+        "description": "The loading text when waiting for Gemini response in pet consultant page"
+    },
+    "pets.chat.badge.func_call_success": {
+        "message": "Success calling function `{func_name}`!",
+        "description": "The badge of function call success in pet consultant page"
+    },
+    "pets.chat.badge.func_call_error": {
+        "message": "Fail calling function `{func_name}`!!!",
+        "description": "The badge of function call failure in pet consultant page"
+    },
+    "pets.chat.badge.think_again": {
+        "message": "Think again using results from function calls.",
+        "description": "The badge of information about thinking again in pet consultant page"
+    },
+    "week10.no_sentences": {
+        "message": "No sentences selected for training.",
+        "description": "The warning message when no sentences are available for training."
+    },
+    "week10.not_keyword": {
+        "message": "Not a keyword selected in trained model.",
+        "description": "The warning message when it's not a keyword in the trained model."
+    },
+    "week10.2d.page_title": {
+        "message": "Word2Vec 2D Visualization",
+        "description": "The page title in the title bar of week 10 Q1-1 2D"
+    },
+    "week10.2d.doc_title": {
+        "message": "Visualize Word2Vec in 2D",
+        "description": "The page title of week 10 Q1-1 2D"
+    },
+    "week10.2d.fig_title": {
+        "message": "2D Visualization of Word Embedding",
+        "description": "The title of the figure for 2D visualization of word embeddings."
+    },
+    "week10.3d.page_title": {
+        "message": "Word2Vec 3D Visualization",
+        "description": "The page title in the title bar of week 10 Q1-1 3D"
+    },
+    "week10.3d.doc_title": {
+        "message": "Visualize Word2Vec in 3D",
+        "description": "The page title of week 10 Q1-1 3D"
+    },
+    "week10.3d.fig_title": {
+        "message": "3D Visualization of Word Embedding",
+        "description": "The title of the figure for 3D visualization of word embeddings."
+    },
+    "week10.skip_gram.page_title": {
+        "message": "Word2Vec SKIP-GRAM Training",
+        "description": "The page title in the title bar of week 10 Q2 SKIP-GRAM"
+    },
+    "week10.skip_gram.doc_title": {
+        "message": "Word2Vec SKIP-GRAM Training",
+        "description": "The page title of week 10 Q2 SKIP-GRAM"
+    },
+    "week10.cbow.doc_title": {
+        "message": "Word2Vec CBOW Training",
+        "description": "The page title of week 10 Q3 CBOW"
+    },
+    "week10.cbow.page_title": {
+        "message": "Word2Vec CBOW Training",
+        "description": "The page title in the title bar of week 10 Q3 CBOW"
+    },
+    "week10.original_model": {
+        "message": "Original Model",
+        "description": "The label of the original model subheader in week 10 Q2 & Q3"
+    },
+    "week10.rm_stopwords_model": {
+        "message": "Remove stopwords",
+        "description": "The label of the remove stopwords model in week 10 Q2 & Q3"
+    },
+    "week10.most_similar_words": {
+        "message": "Most similar words",
+        "description": "The label of the most similar words input field in week 10 Q2 & Q3"
+    },
+    "week10.most_similar_words.placeholder": {
+        "message": "Please enter the word you want to find similar words for.",
+        "description": "The placeholder of the most similar words input field in week 10 Q2 & Q3"
+    },
+    "sidebar.section_label.home" : {
+        "message": "Home",
+        "description": "Label of the home section"
+    },
+    "sidebar.page_label.home" : {
+        "message": "Home",
+        "description": "Label of the home page"
+    },
+    "sidebar.page_label.pets.autogen": {
+        "message": "Autogen Agents",
+        "description": "Label of the pet auto-generate page"
+    },
+    "pets.chat.spinner.rethink_text" : {
+        "message": "Thinking about the tool call results...",
+        "description": "The loading text when the chatbot is rethinking in pet consultant page"
+    }
+}

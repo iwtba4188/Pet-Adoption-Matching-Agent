@@ -1,0 +1,661 @@
+import os
+
+# import time
+from collections import deque
+from collections.abc import Generator
+from io import BytesIO  # Use BytesIO directly
+
+import requests
+import streamlit as st
+
+# import torch
+# from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+from PIL import Image
+from transformers import BlipForConditionalGeneration, BlipProcessor
+
+# --- Load Environment Variables ---
+load_dotenv()
+
+# --- Assumed Utilities (Ensure these exist and work) ---
+from utils.bots import (
+    chat,
+    display_chat_history,
+)
+from utils.bots.ctx_mgr import CtxMgr
+
+# IMPORTANT: Ensure these functions are correctly defined in utils.function_call
+# and that crawling_dcard_article_content now returns image_urls
+from utils.function_call import (
+    cawling_dcard_urls,
+    content_wordcloud,
+    crawling_dcard_article_content,
+    # describe_dcard_pet_image will be defined locally now
+)
+from utils.helpers import (
+    error_badge,
+    info_badge,
+    read_file_content,
+    st_spinner,
+    str_stream,
+    success_badge,
+)
+
+# Assuming i18n setup exists and works
+from utils.i18n import i18n
+
+# --- Constants and Context Managers ---
+# Use i18n for UI elements (ensure keys exist in your i18n setup)
+input_field_placeholder = i18n(
+    "pets.chat.input_placeholder", default="Ask about Dcard posts..."
+)
+user_name = "Shihtl"  # Or get dynamically
+ctx_history = CtxMgr("pets_gemini_history", [])  # Display history
+ctx_content = CtxMgr("pets_gemini", deque(maxlen=10))  # API context (rolling window)
+
+# --- Local Image Analysis Setup (BLIP Model) ---
+
+
+# Cache the model loading to avoid reloading on each run
+@st.cache_resource
+def load_blip_model():
+    """Loads the BLIP processor and model."""
+    print("Loading BLIP model...")
+    try:
+        processor = BlipProcessor.from_pretrained(
+            "Salesforce/blip-image-captioning-base"
+        )
+        model = BlipForConditionalGeneration.from_pretrained(
+            "Salesforce/blip-image-captioning-base"
+        )
+        print("BLIP model loaded successfully.")
+        # You might want to move model to GPU if available:
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        # model.to(device)
+        # print(f"BLIP model using device: {device}")
+        return processor, model
+    except Exception as e:
+        st.error(f"Failed to load BLIP model: {e}")
+        print(f"Error loading BLIP model: {e}")
+        return None, None
+
+
+# Load the model and processor
+processor, blip_model = load_blip_model()
+
+
+def fetch_image_bytes(url: str) -> bytes | None:
+    """Fetches image data from a URL, returns bytes or None on error."""
+    try:
+        # Add headers to mimic browser requests
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        response = requests.get(url, timeout=10, headers=headers)
+        response.raise_for_status()  # Check for HTTP errors
+        # Basic check for image content type
+        content_type = response.headers.get("content-type")
+        if content_type and content_type.startswith("image/"):
+            return response.content
+        else:
+            print(
+                f"Warning: URL did not return an image content type: {url} (Type: {content_type})"
+            )
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching image {url}: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error fetching image {url}: {e}")
+        return None
+
+
+def analyze_pet_image_with_blip(image_bytes: bytes) -> str | None:
+    """Generates a caption for the image using the loaded BLIP model."""
+    if not processor or not blip_model:
+        return "BLIP model not loaded."
+    try:
+        image = Image.open(BytesIO(image_bytes)).convert("RGB")
+        # device = "cuda" if torch.cuda.is_available() else "cpu" # Match device used in loading
+        # Prepare inputs (move to appropriate device if using GPU)
+        inputs = processor(image, return_tensors="pt")  # .to(device)
+
+        # Generate caption (move model output if needed)
+        out = blip_model.generate(**inputs)
+        caption = processor.decode(out[0], skip_special_tokens=True)
+        return caption
+    except Exception as e:
+        print(f"Error during BLIP image analysis: {e}")
+        return f"Error analyzing image: {e}"
+
+
+# --- Tool Function Definition for Gemini ---
+def describe_dcard_pet_image(image_url: str) -> dict:
+    """
+    Fetches an image from the provided URL and generates a description
+    using a local image captioning model (BLIP).
+
+    Args:
+        image_url (str): The direct URL of the image to analyze.
+
+    Returns:
+        dict: A dictionary containing the 'description' and the original 'image_url',
+              or an 'error' message.
+    """
+    print(f"Tool 'describe_dcard_pet_image' called for URL: {image_url}")
+    if not image_url:
+        return {"error": "No image URL provided."}
+
+    image_bytes = fetch_image_bytes(image_url)
+
+    if image_bytes is None:
+        return {"error": f"Could not fetch image from URL: {image_url}"}
+
+    description = analyze_pet_image_with_blip(image_bytes)
+
+    if description is None or "Error" in description:
+        # Return error if analysis failed
+        return {"error": description or "Image analysis failed."}
+    else:
+        # Return successful description and the URL
+        return {
+            "description": description,
+            "image_url": image_url,  # Include URL for context
+        }
+
+
+# --- Streamlit Page Setup ---
+def page_init() -> None:
+    """Set Streamlit page config and title."""
+    st.set_page_config(page_title=f"Pet Assistant {user_name}", layout="wide")
+    st.title(
+        i18n(
+            "pets.chat.doc_title",
+            user_name=user_name,
+            default=f"Pet Adoption Assistant ({user_name})",
+        )
+    )
+    # Custom CSS for spinner alignment (optional)
+    st.markdown(
+        """<style>
+    div.stSpinner > div {
+        text-align: left;
+        align-items: center;
+        padding-left: 10px; /* Adjust as needed */
+    }
+    </style>""",
+        unsafe_allow_html=True,
+    )
+
+
+# --- Gemini Configuration ---
+def init_gemini_api_config() -> dict:
+    """Build initial Gemini API config, including tools."""
+    try:
+        # Ensure system prompt file exists and mentions the new tool
+        system_prompt_content = read_file_content("./src/static/system_prompt.txt")
+        # Example: Update system_prompt.txt to include:
+        # "You can get text content and image URLs from a Dcard post using 'crawling_dcard_article_content'.
+        # If you have a specific image URL (e.g., from the previous tool or the user), you can describe
+        # the image using the 'describe_dcard_pet_image' tool."
+        system_prompt = system_prompt_content.format(
+            lang=i18n.lang if hasattr(i18n, "lang") else "en"
+        )
+    except FileNotFoundError:
+        st.error("Error: system_prompt.txt not found in ./src/static/")
+        system_prompt = f"You are a helpful assistant. Current language: {i18n.lang if hasattr(i18n, 'lang') else 'en'}"  # Basic fallback
+
+    # Use a text-focused Gemini model, as vision is handled locally
+    model_name = "gemini-1.5-flash-latest"  # Or "gemini-pro" / other text models
+
+    # Define the list of available tool functions
+    # References the imported functions and the locally defined one
+    tools = [
+        cawling_dcard_urls,
+        crawling_dcard_article_content,  # Assumes this returns image_urls now
+        content_wordcloud,
+        describe_dcard_pet_image,
+    ]
+
+    generate_content_config = types.GenerateContentConfig(
+        temperature=0.1,
+        response_mime_type="text/plain",
+        system_instruction=types.Part.from_text(text=system_prompt),
+        tools=tools,
+        # Use explicit function calling control - ANY mode lets Gemini choose
+        # or specific modes if needed.
+        tool_config=types.ToolConfig(
+            function_calling_config=types.FunctionCallingConfig(
+                mode=types.FunctionCallingConfig.Mode.ANY,
+            )
+        ),
+        # automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True), # Old way
+    )
+
+    return {
+        "model": model_name,
+        "config": generate_content_config,
+    }
+
+
+def gemini_api_config() -> dict:
+    """Retrieve or initialize Gemini config and add current context."""
+    if "gemini_configs" not in st.session_state:
+        st.session_state["gemini_configs"] = init_gemini_api_config()
+
+    gemini_configs = st.session_state["gemini_configs"]
+    # Add the current conversation history (rolling window) from ctx_content
+    gemini_configs["contents"] = ctx_content.get_context()
+    # print("--- Current API Request Contents ---") # Optional debug print
+    # ... (rest of debug printing if needed) ...
+    return gemini_configs
+
+
+# --- Function Calling Execution ---
+def execute_func_call(func_call: types.FunctionCall) -> dict:
+    """Executes the requested function call by matching its name."""
+    func_call_result = {
+        "func_call": func_call,
+        "status": "unknown",
+        "result": {"error": "Function execution failed."},  # Default error result
+        "display_result": False,
+    }
+    func_name = func_call.name
+    func_args = func_call.args if func_call.args else {}
+
+    print(f"Executing function call: {func_name} with args: {func_args}")
+    st.write(f"🛠️ Calling tool: `{func_name}`...")  # Show tool call in UI
+
+    try:
+        result_data = None  # Variable to hold the data returned by the function
+        if func_name == "cawling_dcard_urls":
+            result_data = cawling_dcard_urls(**func_args)
+        elif func_name == "crawling_dcard_article_content":
+            # Assumes this now returns {"content": ..., "image_urls": [...]}
+            result_data = crawling_dcard_article_content(**func_args)
+        elif func_name == "content_wordcloud":
+            result_data = content_wordcloud(**func_args)
+            # Word cloud result (e.g., Markdown) can be displayed
+            func_call_result["display_result"] = True
+        elif func_name == "describe_dcard_pet_image":
+            # Call the local BLIP wrapper function
+            # Ensure the argument name matches (Gemini likely uses snake_case from function def)
+            image_url_arg = func_args.get("image_url")
+            if image_url_arg:
+                result_data = describe_dcard_pet_image(image_url=image_url_arg)
+            else:
+                result_data = {
+                    "error": "Missing 'image_url' argument for describe_dcard_pet_image."
+                }
+            # Description result can be displayed
+            func_call_result["display_result"] = True
+        else:
+            # Raise error if function name doesn't match known tools
+            raise ValueError(f"Unknown function call requested by model: {func_name}")
+
+        # Check if the tool execution itself resulted in an error structure
+        if isinstance(result_data, dict) and "error" in result_data:
+            func_call_result["status"] = "error"
+            func_call_result["result"] = result_data  # Pass back the error dict
+        else:
+            func_call_result["status"] = "success"
+            func_call_result["result"] = result_data  # Store the successful result
+
+    except Exception as e:
+        # Catch errors during the execution lookup or call itself
+        print(f"Critical error executing function {func_name}: {e}")
+        st.error(f"Error running tool `{func_name}`: {e}")  # Show error in UI
+        func_call_result["status"] = "error"
+        # Ensure the result passed back is a dict structure Gemini expects
+        func_call_result["result"] = {"error": str(e)}
+
+    print(f"Function call '{func_name}' result status: {func_call_result['status']}")
+    return func_call_result
+
+
+def add_func_call_result(func_call_result: dict) -> None:
+    """Adds the model's function call and the tool's response to API context."""
+    # 1. Add the model's request to call the function to the context
+    ctx_content.add_context(
+        types.Content(
+            role="model",
+            # Ensure the part contains the function call details from the model
+            parts=[types.Part(function_call=func_call_result["func_call"])],
+        )
+    )
+
+    # 2. Add the actual result obtained from executing the function
+    # The role MUST be "function" for the API to understand it's a response
+    function_response_part = types.Part.from_function_response(
+        name=func_call_result["func_call"].name,
+        # The response field should contain the *direct output* of your tool function.
+        # Gemini matches this against the tool's declared output schema.
+        response=func_call_result["result"],  # Pass the dict/list/str directly
+    )
+    ctx_content.add_context(
+        types.Content(
+            role="function", parts=[function_response_part]
+        )  # ROLE MUST BE "function"
+    )
+    print(
+        f"Added function response for {func_call_result['func_call'].name} to context."
+    )
+
+
+def func_call_result_badge_stream(func_call_result: dict) -> Generator[str, None, None]:
+    """Streams a status badge for the function call."""
+    func_name = func_call_result["func_call"].name
+    status = func_call_result["status"]
+    result = func_call_result["result"]  # This is the actual data or error dict
+
+    badge_i18n_key = f"pets.chat.badge.func_call_{status}"
+    # Provide default values for i18n keys
+    badge_msg = i18n(
+        badge_i18n_key, func_name=func_name, default=f"Tool {func_name}: {status}"
+    )
+
+    if status == "error":
+        error_detail = (
+            result.get("error", "Unknown error")
+            if isinstance(result, dict)
+            else str(result)
+        )
+        print(f"Function call '{func_name}' error details: {error_detail}")
+        yield from str_stream(error_badge(badge_msg))
+        # Optionally yield the specific error for the user to see
+        # yield f"\n > Error: {error_detail}\n"
+    else:
+        yield from str_stream(success_badge(badge_msg))
+        # Display result if flagged (e.g., word cloud markdown, image description)
+        if func_call_result["display_result"]:
+            if isinstance(result, dict):
+                # Nicely format dict results (like image description)
+                display_text = f"\n> **{func_name} Result:**\n"
+                if "description" in result:
+                    display_text += f"> Description: {result['description']}\n"
+                if "image_url" in result:
+                    # Display the image itself using Markdown
+                    display_text += f"> Image: ![]({result['image_url']})\n"
+                # Add other relevant fields if needed
+                yield display_text
+
+            elif isinstance(result, str):
+                # Assume string results like wordcloud Markdown are safe
+                yield f"\n{result}\n"  # Add newlines for spacing
+            # Add handling for list results if needed
+
+
+def gemini_function_calling(
+    function_calls: list[types.FunctionCall],
+) -> Generator[str, None, None]:
+    """Processes function calls requested by the model."""
+    print(f"Model requested {len(function_calls)} function calls.")
+
+    for func_call in function_calls:
+        spinner_text = i18n(
+            "pets.chat.spinner.func_call_text",
+            func_call_name=func_call.name,
+            default=f"Running {func_call.name}...",
+        )
+        func_spinner = st_spinner(text=spinner_text, show_time=True)
+        func_call_result = execute_func_call(func_call)
+        add_func_call_result(
+            func_call_result
+        )  # Add model call + function response to context
+        func_spinner.end()
+        yield from func_call_result_badge_stream(
+            func_call_result
+        )  # Stream badge + maybe result
+
+    # After processing all calls in this turn, prompt model to continue
+    print(
+        "All function calls processed for this turn. Asking model to synthesize results."
+    )
+    # yield "\n" # Add spacing
+    yield from str_stream(
+        info_badge(
+            i18n("pets.chat.badge.think_again", default="🧠 Processing results...")
+        )
+    )
+    # yield "\n"
+    # Call the main stream again; Gemini now has function responses in context
+    yield from gemini_response_stream()
+
+
+# --- Main Gemini Interaction Stream ---
+def gemini_response_stream() -> Generator[str | tuple, None, None]:
+    """
+    Invokes Gemini API, streams response, handles text and function calls.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        yield error_badge(
+            i18n("error.gemini_key_missing", default="GEMINI_API_KEY not set!")
+        )
+        return
+
+    # Ensure BLIP model is loaded before proceeding if needed by tools
+    if not processor or not blip_model:
+        # This check might be too late if Gemini calls the tool first,
+        # but good as a fallback. Error handling in the tool itself is primary.
+        yield error_badge("BLIP model failed to load. Image description unavailable.")
+        # Decide if you want to stop here or continue without image analysis
+        # return
+
+    try:
+        client = genai.Client(api_key=api_key)
+        api_params = gemini_api_config()  # Gets model, config, history context
+        model = client.models.get(api_params["model"])
+
+        print(f"Generating content with model: {api_params['model']}")
+        stream = model.generate_content(
+            contents=api_params["contents"],  # Includes history and last user msg
+            generation_config=api_params["config"],  # Temp, tools, etc.
+            stream=True,
+            tool_config=api_params[
+                "config"
+            ].tool_config,  # Crucial for function calling
+        )
+    except Exception as e:
+        print(f"Error initializing Gemini or starting stream: {e}")
+        yield error_badge(f"Error connecting to Gemini: {e}")
+        return
+
+    # Process Stream
+    function_calls_in_chunk = []
+    full_response_text = ""
+    gemini_spinner = st_spinner(
+        text=i18n("pets.chat.spinner.gemini_response", default="Gemini is thinking..."),
+        show_time=True,
+    )
+
+    try:
+        for chunk in stream:
+            gemini_spinner.end()  # Stop spinner on first chunk
+
+            # A. Check for function calls requested by the model
+            if chunk.function_calls:
+                print(
+                    f"Received function calls: {[fc.name for fc in chunk.function_calls]}"
+                )
+                function_calls_in_chunk.extend(chunk.function_calls)
+
+            # B. Check for text content generated by the model
+            if chunk.text:
+                # print(f"Chunk text: {chunk.text}") # Debug
+                full_response_text += chunk.text
+                yield from str_stream(chunk.text)  # Stream text chars
+
+            # C. Handle potential errors/blocks in the stream chunk
+            if not chunk.candidates:
+                print("Warning: Chunk received with no candidates.")
+                if (
+                    hasattr(chunk, "prompt_feedback")
+                    and chunk.prompt_feedback.block_reason
+                ):
+                    reason = chunk.prompt_feedback.block_reason
+                    print(f"Stream potentially blocked: {reason}")
+                    yield error_badge(f"Response blocked: {reason}")
+                    # Consider stopping if blocked
+                    # return
+
+    except types.generation_types.BlockedPromptException as e:
+        gemini_spinner.end()
+        print(f"Gemini request blocked: {e}")
+        yield error_badge(f"Request blocked by API: {e}")
+        return
+    # Add other specific GenAI exceptions if needed
+    except Exception as e:
+        gemini_spinner.end()
+        print(f"Error during Gemini stream processing: {e}")
+        yield error_badge(f"Stream error: {e}")
+        return
+    finally:
+        gemini_spinner.end()  # Ensure spinner stops
+
+    # --- After Stream Loop ---
+    # If function calls were received during the stream, execute them
+    if function_calls_in_chunk:
+        # IMPORTANT: Do not add the 'full_response_text' to context here.
+        # The model's turn technically ended with a function call request.
+        # The 'add_func_call_result' function handles adding the model's
+        # function call part and the function's response part to context.
+        print("Handing over to function calling process.")
+        yield from gemini_function_calling(function_calls_in_chunk)
+
+    # If the stream finished with only text (no function calls)
+    elif full_response_text:
+        # Add the final aggregated text response from the model to the context
+        print("Adding final text response to context.")
+        ctx_content.add_context(
+            types.Content(
+                role="model", parts=[types.Part.from_text(text=full_response_text)]
+            )
+        )
+    else:
+        # Handle cases where the stream ends without text or function calls (e.g., error handled above)
+        print("Stream finished without generating text or requesting function calls.")
+
+
+# --- Streamlit Chat Interface Logic ---
+def chat_init(stream_generator: Generator) -> None:
+    """Handles the initial greeting message."""
+    # Use current language setting for the introductory prompt
+    lang_code = i18n.lang if hasattr(i18n, "lang") else "en"
+    intro_prompt = i18n(
+        "intro.prompt", lang=lang_code, default=f"Introduce yourself. Lang: {lang_code}"
+    )
+
+    # Temporarily add intro prompt to context for the first call ONLY
+    # This is slightly hacky; a cleaner way might involve a separate API call setup
+    initial_context = [
+        types.Content(role="user", parts=[types.Part.from_text(text=intro_prompt)])
+    ]
+
+    print("Initiating conversation with greeting...")
+    with st.chat_message("assistant"):
+        # Generate the greeting using a temporary context
+        try:
+            client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+            api_params = gemini_api_config()  # Get model/config
+            model = client.models.get(api_params["model"])
+            # Call generate_content directly for the intro, using temporary context
+            intro_stream = model.generate_content(
+                contents=initial_context,  # Use only the intro prompt
+                generation_config=api_params["config"],
+                stream=True,
+                tool_config=api_params["config"].tool_config,
+            )
+            # Stream the response directly
+            full_response = st.write_stream(
+                intro_stream
+            )  # write_stream handles text/errors
+
+        except Exception as e:
+            st.error(f"Failed to get initial greeting: {e}")
+            full_response = f"Sorry, I couldn't start the conversation. Error: {e}"
+
+    # Add the *actual* greeting response to the display history
+    if isinstance(full_response, str):
+        ctx_history.add_context({"role": "assistant", "content": full_response})
+        # Add greeting to API context as well, so model knows what it said
+        ctx_content.add_context(
+            types.Content(
+                role="model", parts=[types.Part.from_text(text=full_response)]
+            )
+        )
+    # No need to clear ctx_content here as we didn't add the user intro prompt to it.
+
+
+def chat_bot():
+    """Renders the chat interface and handles user input."""
+    chat_container = st.container(border=True, height=600)  # Set height for scroll
+
+    with chat_container:
+        # Initialize chat with greeting if history is empty
+        if ctx_history.empty():
+            # Ensure models are ready before initiating chat
+            if processor and blip_model:
+                chat_init(
+                    gemini_response_stream()
+                )  # Pass generator, though chat_init now calls directly
+            else:
+                st.error(
+                    "Required local models could not be loaded. Please check logs."
+                )
+        else:
+            # Display existing chat history (ensure this function handles scrolling)
+            display_chat_history(ctx_history)  # Assumes this util exists
+
+    # Handle user input (place input bar outside the scrolling container)
+    if prompt := st.chat_input(placeholder=input_field_placeholder, key="chat_input"):
+        # Add user message to API context *before* calling the API
+        ctx_content.add_context(
+            types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
+        )
+        # Rerun the script to display the new message and get response
+        # The display logic is now handled by the structure: container + input
+        # We need to call the display and response generation logic again.
+
+        # Display the user message *inside* the container
+        with chat_container:
+            # Call your chat display utility (assumed to exist)
+            # This should ideally add the user message to history and display it
+            # For simplicity, we might just redisplay history here (if display_chat_history handles it)
+            # and then generate/display the response.
+            chat(ctx_history, prompt=prompt, stream=gemini_response_stream())
+            # The `chat` function from utils needs to:
+            # 1. Add `prompt` to `ctx_history` as user role.
+            # 2. Display the updated `ctx_history`.
+            # 3. Call the `stream` generator (gemini_response_stream).
+            # 4. Display the assistant's response stream.
+            # 5. Add the final assistant response to `ctx_history`.
+
+
+# --- Main Execution ---
+if __name__ == "__main__":
+    page_init()  # Set page config first
+
+    # Basic check for API key
+    if not os.environ.get("GEMINI_API_KEY"):
+        st.error(i18n("error.gemini_key_missing", default="GEMINI_API_KEY not set!"))
+        st.stop()
+
+    # Attempt to load local model early and check status
+    if not processor or not blip_model:
+        st.error(
+            "Failed to load the local image captioning model (BLIP). Image description tool will not work."
+        )
+        # Optionally st.stop() if the BLIP model is critical
+
+    # Initialize API config in session state if needed
+    if "gemini_configs" not in st.session_state:
+        try:
+            st.session_state["gemini_configs"] = init_gemini_api_config()
+        except Exception as e:
+            st.error(f"Failed to initialize Gemini configuration: {e}")
+            st.stop()
+
+    # Run the chat interface
+    chat_bot()

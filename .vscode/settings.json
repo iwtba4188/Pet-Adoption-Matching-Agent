@@ -1,0 +1,22 @@
+{
+    "python.testing.pytestArgs": [
+        "tests",
+        "-s"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports.ruff": "explicit"
+        },
+        "editor.formatOnType": false,
+        "editor.formatOnSave": true,
+        "diffEditor.ignoreTrimWhitespace": true,
+        "notebook.formatOnSave.enabled": true,
+        "notebook.codeActionsOnSave": {
+            "notebook.source.organizeImports": "explicit"
+        },
+    },
+    "python.analysis.typeCheckingMode": "off",
+}

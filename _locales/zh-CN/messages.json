@@ -1,0 +1,158 @@
+{
+    "menu_items.about": {
+        "message": "这是一个宠物信息聊天机器人演示，您可以询问它宠物相关信息，或使用宠物领养匹配服务。",
+        "description": "About message of the page."
+    },
+    "sidebar.section_label.pet": {
+        "message": "宠物咨询",
+        "description": "Title of the pet consultant section"
+    },
+    "sidebar.page_label.pets.chat": {
+        "message": "开始聊天",
+        "description": "Title of the pet consultant page"
+    },
+    "sidebar.section_label.week10": {
+        "message": "第10周：Word2Vec 可视化",
+        "description": "Label of the week 10 section"
+    },
+    "sidebar.page_label.week10.2d": {
+        "message": "2D 可视化",
+        "description": "Label of the week 10 Q1-1 2D"
+    },
+    "sidebar.page_label.week10.3d": {
+        "message": "3D 可视化",
+        "description": "Label of the week 10 Q1-1 3D"
+    },
+    "sidebar.page_label.week10.skip_gram": {
+        "message": "SKIP-GRAM 训练",
+        "description": "Label of the week 10 Q2 SKIP-GRAM"
+    },
+    "sidebar.page_label.week10.cbow": {
+        "message": "CBOW 训练",
+        "description": "Label of the week 10 Q3 CBOW"
+    },
+    "pets.chat.input_placeholder": {
+        "message": "请输入您想询问的问题～",
+        "description": "The placeholder of user input field in pet consultant page"
+    },
+    "pets.chat.page_title": {
+        "message": "宠物咨询 - 您的最佳宠物助手",
+        "description": "The page title in the title bar of pet consultant page"
+    },
+    "pets.chat.doc_title": {
+        "message": "💬 宠物领养 AI 咨询代理",
+        "description": "The page title in pet consultant page"
+    },
+    "pets.chat.spinner.func_call_text": {
+        "message": "正在调用 `{func_call_name}`...",
+        "description": "The loading text in pet consultant page"
+    },
+    "pets.chat.spinner.gemini_response": {
+        "message": "正在等待 Gemini 响应...",
+        "description": "The loading text when waiting for Gemini response in pet consultant page"
+    },
+    "pets.chat.badge.func_call_success": {
+        "message": "成功调用函数 `{func_name}`！",
+        "description": "The badge of function call success in pet consultant page"
+    },
+    "pets.chat.badge.func_call_error": {
+        "message": "调用函数 `{func_name}` 失败！！！",
+        "description": "The badge of function call failure in pet consultant page"
+    },
+    "pets.chat.badge.think_again": {
+        "message": "根据函数调用结果重新思考。",
+        "description": "The badge of information about thinking again in pet consultant page"
+    },
+    "week10.2d.page_title": {
+        "message": "Word2Vec 2D 可视化",
+        "description": "The page title in the title bar of week 10 Q1-1 2D"
+    },
+    "week10.3d.page_title": {
+        "message": "Word2Vec 3D 可视化",
+        "description": "The page title in the title bar of week 10 Q1-1 3D"
+    },
+    "week10.skip_gram.page_title": {
+        "message": "Word2Vec SKIP-GRAM 训练",
+        "description": "The page title in the title bar of week 10 Q2 SKIP-GRAM"
+    },
+    "week10.cbow.page_title": {
+        "message": "Word2Vec CBOW 训练",
+        "description": "The page title in the title bar of week 10 Q3 CBOW"
+    },
+    "spinner.loading": {
+        "message": "加载中...",
+        "description": "Loading message of the page."
+    },
+    "df_input.col_name.selected": {
+        "message": "选择进行训练",
+        "description": "Column name for the data frame"
+    },
+    "df_input.col_name.sentence": {
+        "message": "句子",
+        "description": "Column name for the data frame"
+    },
+    "week10.no_sentences": {
+        "message": "未选择任何句子进行训练。",
+        "description": "The warning message when no sentences are available for training."
+    },
+    "week10.not_keyword": {
+        "message": "所选词不是训练模型中的关键词。",
+        "description": "The warning message when it's not a keyword in the trained model."
+    },
+    "week10.2d.doc_title": {
+        "message": "在 2D 中可视化 Word2Vec",
+        "description": "The page title of week 10 Q1-1 2D"
+    },
+    "week10.2d.fig_title": {
+        "message": "词嵌入的 2D 可视化图",
+        "description": "The title of the figure for 2D visualization of word embeddings."
+    },
+    "week10.3d.doc_title": {
+        "message": "在 3D 中可视化 Word2Vec",
+        "description": "The page title of week 10 Q1-1 3D"
+    },
+    "week10.3d.fig_title": {
+        "message": "词嵌入的 3D 可视化图",
+        "description": "The title of the figure for 3D visualization of word embeddings."
+    },
+    "week10.skip_gram.doc_title": {
+        "message": "Word2Vec SKIP-GRAM 训练",
+        "description": "The page title of week 10 Q2 SKIP-GRAM"
+    },
+    "week10.cbow.doc_title": {
+        "message": "Word2Vec CBOW 训练",
+        "description": "The page title of week 10 Q3 CBOW"
+    },
+    "week10.original_model": {
+        "message": "原始模型",
+        "description": "The label of the original model subheader in week 10 Q2 & Q3"
+    },
+    "week10.rm_stopwords_model": {
+        "message": "移除停用词",
+        "description": "The label of the remove stopwords model in week 10 Q2 & Q3"
+    },
+    "week10.most_similar_words": {
+        "message": "最相似的词",
+        "description": "The label of the most similar words input field in week 10 Q2 & Q3"
+    },
+    "week10.most_similar_words.placeholder": {
+        "message": "请输入您想查找相似词的单词。",
+        "description": "The placeholder of the most similar words input field in week 10 Q2 & Q3"
+    },
+    "sidebar.section_label.home" : {
+        "message": "主页",
+        "description": "Label of the home section"
+    },
+    "sidebar.page_label.home" : {
+        "message": "主页",
+        "description": "Label of the home page"
+    },
+    "sidebar.page_label.pets.autogen": {
+        "message": "Autogen 代理",
+        "description": "Label of the pet auto-generate page"
+    },
+    "pets.chat.spinner.rethink_text" : {
+        "message": "正在思考 tool call 的结果...",
+        "description": "The loading text when the chatbot is rethinking in pet consultant page"
+    }
+}
