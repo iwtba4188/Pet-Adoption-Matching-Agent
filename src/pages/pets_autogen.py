@@ -195,7 +195,12 @@ async def autogen_response_stream(task: str):
 
 
 def chat_init() -> None:
-    st.chat_message("assistant").write_stream(autogen_response_stream("請自我介紹"))
+    st.chat_message("assistant").write_stream(
+        autogen_response_stream(
+            f"Please introduce yourself, using lang: {i18n.lang}, using default_lang if not applicable: {i18n.default_lang}"
+            # "Please introduce yourself, using lang: english"
+        )
+    )
 
     st.session_state.team.reset()
 
